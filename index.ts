@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict'
 import '@total-typescript/ts-reset/filter-boolean'
 
-function hasKey(obj, keys) {
+function hasKey<T extends {}>(obj: T, keys: (keyof T)[]): boolean {
   let o = obj
-  keys.slice(0, -1).forEach(key => {
+  keys.slice(0, -1).forEach((key) => {
     o = o[key] || {}
   })
 
-  var key = keys[keys.length - 1]
+  const key = keys[keys.length - 1]
   return key in o
 }
 
@@ -15,69 +15,71 @@ function isNumber<T extends string | number>(x: T): boolean {
   if (typeof x === 'number') {
     return true
   }
-  if ((/^0x[0-9a-f]+$/i).test(x)) {
+  if (/^0x[0-9a-f]+$/i.test(x)) {
     return true
   }
-  return (/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/).test(x)
+  return /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/.test(x)
 }
 
-function isConstructorOrProto(obj, key) {
-  return (key === 'constructor' && typeof obj[key] === 'function') || key === '__proto__'
+function isConstructorOrProto(obj, key): boolean {
+  return (
+    (key === 'constructor' && typeof obj[key] === 'function') ||
+    key === '__proto__'
+  )
 }
-
 
 interface Opts {
   /**
    * A string or array of strings argument names to always treat as strings
    */
-  string?: string | string[] | undefined;
+  string?: string | string[]
 
   /**
    * A boolean, string or array of strings to always treat as booleans. If true will treat
    * all double hyphenated arguments without equals signs as boolean (e.g. affects `--foo`, not `-f` or `--foo=bar`)
    */
-  boolean?: boolean | string | string[] | undefined;
+  boolean?: boolean | string | string[]
 
   /**
    * An object mapping string names to strings or arrays of string argument names to use as aliases
    */
-  alias?: { [key: string]: string | string[] } | undefined;
+  alias?: Record<string, string | string[]>
 
   /**
    * An object mapping string argument names to default values
    */
-  default?: { [key: string]: any } | undefined;
+  default?: Record<string, any>
 
   /**
    * When true, populate argv._ with everything after the first non-option
    */
-  stopEarly?: boolean | undefined;
+  stopEarly?: boolean
 
   /**
    * A function which is invoked with a command line parameter not defined in the opts
    * configuration object. If the function returns false, the unknown option is not added to argv
    */
-  unknown?: ((arg: string) => boolean) | undefined;
+  unknown?: (arg: string) => boolean
 
   /**
    * When true, populate argv._ with everything before the -- and argv['--'] with everything after the --.
    * Note that with -- set, parsing for arguments still stops after the `--`.
    */
-  '--'?: boolean | undefined;
+  '--'?: boolean
 }
 
 interface ParsedArgs {
-  [arg: string]: any;
+  [arg: string]: any
 
   /**
    * If opts['--'] is true, populated with everything after the --
    */
-  '--'?: string[] | undefined;
+  '--'?: string[]
 
   /**
    * Contains all the arguments that didn't have an option associated with them
    */
-  _: string[];
+  _: string[]
 }
 
 /**
@@ -86,7 +88,7 @@ interface ParsedArgs {
  * @param [args] An optional argument array (typically `process.argv.slice(2)`)
  * @param [opts] An optional options object to customize the parsing
  */
-export default function minimist(args?: string[], opts?: Opts): ParsedArgs;
+export default function minimist(args?: string[], opts?: Opts): ParsedArgs
 
 /**
  * Return an argument object populated with the array arguments from args. Strongly-typed
@@ -97,7 +99,10 @@ export default function minimist(args?: string[], opts?: Opts): ParsedArgs;
  * @param [args] An optional argument array (typically `process.argv.slice(2)`)
  * @param [opts] An optional options object to customize the parsing
  */
-export default function minimist<T>(args?: string[], opts?: Opts): T & ParsedArgs;
+export default function minimist<T>(
+  args?: string[],
+  opts?: Opts
+): T & ParsedArgs
 
 /**
  * Return an argument object populated with the array arguments from args. Strongly-typed
@@ -108,12 +113,14 @@ export default function minimist<T>(args?: string[], opts?: Opts): T & ParsedArg
  * @param [args] An optional argument array (typically `process.argv.slice(2)`)
  * @param [opts] An optional options object to customize the parsing
  */
-export default function minimist<T extends ParsedArgs>(args: string[], opts: Opts = {}): T {
-
+export default function minimist<T extends ParsedArgs>(
+  args: string[],
+  opts: Opts = {}
+): T {
   type Flags = {
-    bools: Record<string, boolean>,
-    strings: Record<string, string>,
-    unknownFn: null | ((arg: string) => boolean),
+    bools: Record<string, boolean>
+    strings: Record<string, string>
+    unknownFn: null | ((arg: string) => boolean)
     allBools?: boolean
   }
 
@@ -130,12 +137,15 @@ export default function minimist<T extends ParsedArgs>(args: string[], opts: Opt
   if (typeof opts.boolean === 'boolean' && opts.boolean) {
     flags.allBools = true
   } else {
-    [].concat(opts.boolean).filter(Boolean).forEach(key => {
-      flags.bools[key] = true
-    })
+    ;[]
+      .concat(opts.boolean)
+      .filter(Boolean)
+      .forEach((key) => {
+        flags.bools[key] = true
+      })
   }
 
-  const aliases: Record<string, unknown> = {}
+  const aliases: Record<string, unknown[]> = {}
 
   function isBooleanKey(key): boolean {
     if (flags.bools[key]) {
@@ -144,35 +154,39 @@ export default function minimist<T extends ParsedArgs>(args: string[], opts: Opt
     if (!aliases[key]) {
       return false
     }
-    return aliases[key].some(x => flags.bools[x])
+    return aliases[key].some((x) => flags.bools[x])
   }
 
-  Object.keys(opts.alias || {}).forEach(key => {
+  Object.keys(opts.alias || {}).forEach((key) => {
     assert(opts.alias, 'alias is truthy')
     aliases[key] = [].concat(opts.alias[key])
-    aliases[key].forEach(x => {
-      aliases[x] = [key].concat(aliases[key].filter(y => x !== y))
+    aliases[key].forEach((x) => {
+      aliases[x] = [key].concat(aliases[key].filter((y) => x !== y))
     })
-  });
-
-  [].concat(opts.string).filter(Boolean).forEach(key => {
-    flags.strings[key] = true
-    if (aliases[key]) {
-      [].concat(aliases[key]).forEach(k => {
-        flags.strings[k] = true
-      })
-    }
   })
+  ;[]
+    .concat(opts.string)
+    .filter(Boolean)
+    .forEach((key) => {
+      flags.strings[key] = true
+      if (aliases[key]) {
+        ;[].concat(aliases[key]).forEach((k) => {
+          flags.strings[k] = true
+        })
+      }
+    })
 
   var defaults = opts.default || {}
 
-  var argv = {_: []}
+  var argv = { _: [] }
 
   function argDefined(key, arg) {
-    return (flags.allBools && (/^--[^=]+$/).test(arg))
-      || flags.strings[key]
-      || flags.bools[key]
-      || aliases[key]
+    return (
+      (flags.allBools && /^--[^=]+$/.test(arg)) ||
+      flags.strings[key] ||
+      flags.bools[key] ||
+      aliases[key]
+    )
   }
 
   function setKey(obj, keys, value) {
@@ -186,9 +200,9 @@ export default function minimist<T extends ParsedArgs>(args: string[], opts: Opt
         o[key] = {}
       }
       if (
-        o[key] === Object.prototype
-        || o[key] === Number.prototype
-        || o[key] === String.prototype
+        o[key] === Object.prototype ||
+        o[key] === Number.prototype ||
+        o[key] === String.prototype
       ) {
         o[key] = {}
       }
@@ -203,16 +217,20 @@ export default function minimist<T extends ParsedArgs>(args: string[], opts: Opt
       return
     }
     if (
-      o === Object.prototype
-      || o === Number.prototype
-      || o === String.prototype
+      o === Object.prototype ||
+      o === Number.prototype ||
+      o === String.prototype
     ) {
       o = {}
     }
     if (o === Array.prototype) {
       o = []
     }
-    if (o[lastKey] === undefined || isBooleanKey(lastKey) || typeof o[lastKey] === 'boolean') {
+    if (
+      o[lastKey] === undefined ||
+      isBooleanKey(lastKey) ||
+      typeof o[lastKey] === 'boolean'
+    ) {
       o[lastKey] = value
     } else if (Array.isArray(o[lastKey])) {
       o[lastKey].push(value)
@@ -221,31 +239,30 @@ export default function minimist<T extends ParsedArgs>(args: string[], opts: Opt
     }
   }
 
-  function setArg(key, val, arg) {
+  function setArg(key: string, val, arg) {
     if (arg && flags.unknownFn && !argDefined(key, arg)) {
       if (flags.unknownFn(arg) === false) {
         return
       }
     }
 
-    var value = !flags.strings[key] && isNumber(val)
-      ? Number(val)
-      : val
-    setKey(argv, key.split('.'), value);
-
-    (aliases[key] || []).forEach(function (x) {
+    var value = !flags.strings[key] && isNumber(val) ? Number(val) : val
+    setKey(argv, key.split('.'), value)
+    ;(aliases[key] || []).forEach(function (x) {
       setKey(argv, x.split('.'), value)
     })
   }
 
   // Set booleans to false by default.
-  Object.keys(flags.bools).forEach(function (key) {
+  Object.keys(flags.bools).forEach((key) => {
     setArg(key, false)
   })
   // Set booleans to user defined default if supplied.
-  Object.keys(defaults).filter(isBooleanKey).forEach(function (key) {
-    setArg(key, defaults[key])
-  })
+  Object.keys(defaults)
+    .filter(isBooleanKey)
+    .forEach((key) => {
+      setArg(key, defaults[key])
+    })
   var notFlags = []
 
   if (args.indexOf('--') !== -1) {
@@ -258,7 +275,7 @@ export default function minimist<T extends ParsedArgs>(args: string[], opts: Opt
     var key
     var next
 
-    if ((/^--.+=/).test(arg)) {
+    if (/^--.+=/.test(arg)) {
       // Using [\s\S] instead of . because js doesn't support the
       // 'dotall' regex modifier. See:
       // http://stackoverflow.com/a/1068308/13216
@@ -269,27 +286,27 @@ export default function minimist<T extends ParsedArgs>(args: string[], opts: Opt
         value = value !== 'false'
       }
       setArg(key, value, arg)
-    } else if ((/^--no-.+/).test(arg)) {
+    } else if (/^--no-.+/.test(arg)) {
       key = arg.match(/^--no-(.+)/)[1]
       setArg(key, false, arg)
-    } else if ((/^--.+/).test(arg)) {
+    } else if (/^--.+/.test(arg)) {
       key = arg.match(/^--(.+)/)[1]
       next = args[i + 1]
       if (
-        next !== undefined
-        && !(/^(-|--)[^-]/).test(next)
-        && !isBooleanKey(key)
-        && !flags.allBools
+        next !== undefined &&
+        !/^(-|--)[^-]/.test(next) &&
+        !isBooleanKey(key) &&
+        !flags.allBools
       ) {
         setArg(key, next, arg)
         i += 1
-      } else if ((/^(true|false)$/).test(next)) {
+      } else if (/^(true|false)$/.test(next)) {
         setArg(key, next === 'true', arg)
         i += 1
       } else {
         setArg(key, flags.strings[key] ? '' : true, arg)
       }
-    } else if ((/^-[^-]+/).test(arg)) {
+    } else if (/^-[^-]+/.test(arg)) {
       var letters = arg.slice(1, -1).split('')
 
       var broken = false
@@ -301,15 +318,15 @@ export default function minimist<T extends ParsedArgs>(args: string[], opts: Opt
           continue
         }
 
-        if ((/[A-Za-z]/).test(letters[j]) && next[0] === '=') {
+        if (/[A-Za-z]/.test(letters[j]) && next[0] === '=') {
           setArg(letters[j], next.slice(1), arg)
           broken = true
           break
         }
 
         if (
-          (/[A-Za-z]/).test(letters[j])
-          && (/-?\d+(\.\d*)?(e-?\d+)?$/).test(next)
+          /[A-Za-z]/.test(letters[j]) &&
+          /-?\d+(\.\d*)?(e-?\d+)?$/.test(next)
         ) {
           setArg(letters[j], next, arg)
           broken = true
@@ -328,13 +345,13 @@ export default function minimist<T extends ParsedArgs>(args: string[], opts: Opt
       key = arg.slice(-1)[0]
       if (!broken && key !== '-') {
         if (
-          args[i + 1]
-          && !(/^(-|--)[^-]/).test(args[i + 1])
-          && !isBooleanKey(key)
+          args[i + 1] &&
+          !/^(-|--)[^-]/.test(args[i + 1]) &&
+          !isBooleanKey(key)
         ) {
           setArg(key, args[i + 1], arg)
           i += 1
-        } else if (args[i + 1] && (/^(true|false)$/).test(args[i + 1])) {
+        } else if (args[i + 1] && /^(true|false)$/.test(args[i + 1])) {
           setArg(key, args[i + 1] === 'true', arg)
           i += 1
         } else {
@@ -354,9 +371,8 @@ export default function minimist<T extends ParsedArgs>(args: string[], opts: Opt
 
   Object.keys(defaults).forEach(function (k) {
     if (!hasKey(argv, k.split('.'))) {
-      setKey(argv, k.split('.'), defaults[k]);
-
-      (aliases[k] || []).forEach(function (x) {
+      setKey(argv, k.split('.'), defaults[k])
+      ;(aliases[k] || []).forEach(function (x) {
         setKey(argv, x.split('.'), defaults[k])
       })
     }
@@ -371,4 +387,4 @@ export default function minimist<T extends ParsedArgs>(args: string[], opts: Opt
   }
 
   return argv
-};
+}
