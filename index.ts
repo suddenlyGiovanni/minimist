@@ -145,7 +145,7 @@ export default function minimist<T extends ParsedArgs>(
       })
   }
 
-  const aliases: Record<string, unknown[]> = {}
+  const aliases: Record<keyof Exclude<Opts['alias'], undefined>, string[]> = {}
 
   function isBooleanKey(key): boolean {
     if (flags.bools[key]) {
@@ -157,9 +157,10 @@ export default function minimist<T extends ParsedArgs>(
     return aliases[key].some((x) => flags.bools[x])
   }
 
+  // Build the aliases map based on the passed in alias options
   Object.keys(opts.alias || {}).forEach((key) => {
-    assert(opts.alias, 'alias is truthy')
-    aliases[key] = [].concat(opts.alias[key])
+    assert(typeof opts.alias !== 'undefined', 'alias is not "undefined"')
+    aliases[key] = ([] as string | string[]).concat(opts.alias[key]!) //
     aliases[key].forEach((x) => {
       aliases[x] = [key].concat(aliases[key].filter((y) => x !== y))
     })
@@ -248,7 +249,7 @@ export default function minimist<T extends ParsedArgs>(
 
     var value = !flags.strings[key] && isNumber(val) ? Number(val) : val
     setKey(argv, key.split('.'), value)
-    ;(aliases[key] || []).forEach(function (x) {
+    ;(aliases[key] || []).forEach((x) => {
       setKey(argv, x.split('.'), value)
     })
   }
