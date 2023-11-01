@@ -2,8 +2,8 @@ import parse from '../index.js'
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 
-describe('unknown', function () {
-  test('boolean and alias is not unknown', function (t) {
+describe('unknown', () => {
+  test('boolean and alias is not unknown', () => {
     const unknown: unknown[] = []
 
     function unknownFn<T>(arg: T): boolean {
