@@ -29,6 +29,7 @@
     "pretest": "npm run lint",
     "tests-only": "nyc tape 'test/**/*.js'",
     "node-test": "node --test --loader ts-node/esm test/*.ts",
+    "node-test:watch": "node --test --watch --loader ts-node/esm test/*.ts",
     "test": "npm run tests-only",
     "posttest": "aud --production",
     "version": "auto-changelog && git add CHANGELOG.md",
