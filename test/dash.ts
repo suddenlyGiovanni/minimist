@@ -20,7 +20,7 @@ describe('dash', () => {
     assert.deepEqual(parse(['--a', '--', 'b']), { a: true, _: ['b'] })
   })
 
-  test('move arguments after the -- into their own `--` array', function (t) {
+  test('move arguments after the -- into their own `--` array', () => {
     assert.deepEqual(
       parse(['--name', 'John', 'before', '--', 'after'], { '--': true }),
       { name: 'John', _: ['before'], '--': ['after'] }
