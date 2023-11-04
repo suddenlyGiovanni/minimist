@@ -21,14 +21,17 @@ function isNumber<T extends string | number>(x: T): boolean {
   return /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/.test(x)
 }
 
-function isConstructorOrProto(obj, key): boolean {
+function isConstructorOrProto<Obj extends {}>(
+  obj: Obj,
+  key: keyof Obj
+): boolean {
   return (
     (key === 'constructor' && typeof obj[key] === 'function') ||
     key === '__proto__'
   )
 }
 
-interface Opts {
+interface Opts<Args extends string[]> {
   /**
    * A string or array of strings argument names to always treat as strings
    */
@@ -38,7 +41,7 @@ interface Opts {
    * A boolean, string or array of strings to always treat as booleans. If true will treat
    * all double hyphenated arguments without equals signs as boolean (e.g. affects `--foo`, not `-f` or `--foo=bar`)
    */
-  boolean?: boolean | string | string[]
+  boolean?: boolean | Args extends [string] ? Args[0] : Args
 
   /**
    * An object mapping string names to strings or arrays of string argument names to use as aliases
@@ -177,11 +180,11 @@ export default function minimist<T extends ParsedArgs>(
       }
     })
 
-  var defaults = opts.default || {}
+  let defaults = opts.default || {}
 
-  var argv = { _: [] }
+  let argv = { _: [] }
 
-  function argDefined(key, arg) {
+  function argDefined(key: string, arg: string) {
     return (
       (flags.allBools && /^--[^=]+$/.test(arg)) ||
       flags.strings[key] ||
@@ -190,10 +193,14 @@ export default function minimist<T extends ParsedArgs>(
     )
   }
 
-  function setKey(obj, keys, value) {
-    var o = obj
-    for (var i = 0; i < keys.length - 1; i++) {
-      var key = keys[i]
+  function setKey<Obj extends {}>(
+    obj: Obj,
+    keys: (keyof Obj)[],
+    value: unknown
+  ): void {
+    let o = obj
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i]! // TODO: Remove !
       if (isConstructorOrProto(o, key)) {
         return
       }
@@ -213,7 +220,7 @@ export default function minimist<T extends ParsedArgs>(
       o = o[key]
     }
 
-    var lastKey = keys[keys.length - 1]
+    const lastKey = keys[keys.length - 1]! // TODO: Remove !
     if (isConstructorOrProto(o, lastKey)) {
       return
     }
@@ -240,14 +247,22 @@ export default function minimist<T extends ParsedArgs>(
     }
   }
 
-  function setArg(key: string, val, arg) {
+  function setArg<Key extends string, Arg extends string, T>(
+    key: Key,
+    val: T,
+    arg?: Arg
+  ): void {
     if (arg && flags.unknownFn && !argDefined(key, arg)) {
       if (flags.unknownFn(arg) === false) {
         return
       }
     }
 
-    var value = !flags.strings[key] && isNumber(val) ? Number(val) : val
+    let value =
+      !flags.strings[key] && isNumber(val)
+        ? Number(val) //
+        : val
+
     setKey(argv, key.split('.'), value)
     ;(aliases[key] || []).forEach((x) => {
       setKey(argv, x.split('.'), value)
@@ -370,7 +385,7 @@ export default function minimist<T extends ParsedArgs>(
     }
   }
 
-  Object.keys(defaults).forEach(function (k) {
+  Object.keys(defaults).forEach((k) => {
     if (!hasKey(argv, k.split('.'))) {
       setKey(argv, k.split('.'), defaults[k])
       ;(aliases[k] || []).forEach(function (x) {
