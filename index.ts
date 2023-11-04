@@ -31,7 +31,7 @@ function isConstructorOrProto<Obj extends {}>(
   )
 }
 
-interface Opts<Args extends string[]> {
+interface Opts {
   /**
    * A string or array of strings argument names to always treat as strings
    */
@@ -41,7 +41,7 @@ interface Opts<Args extends string[]> {
    * A boolean, string or array of strings to always treat as booleans. If true will treat
    * all double hyphenated arguments without equals signs as boolean (e.g. affects `--foo`, not `-f` or `--foo=bar`)
    */
-  boolean?: boolean | Args extends [string] ? Args[0] : Args
+  boolean?: boolean | string | string[]
 
   /**
    * An object mapping string names to strings or arrays of string argument names to use as aliases
@@ -121,7 +121,7 @@ export default function minimist<T extends ParsedArgs>(
   opts: Opts = {}
 ): T {
   type Flags = {
-    bools: Record<string, boolean>
+    bools: Record<string, true>
     strings: Record<string, string>
     unknownFn: null | ((arg: string) => boolean)
     allBools?: boolean
@@ -137,20 +137,28 @@ export default function minimist<T extends ParsedArgs>(
     flags.unknownFn = opts.unknown
   }
 
-  if (typeof opts.boolean === 'boolean' && opts.boolean) {
-    flags.allBools = true
-  } else {
-    ;[]
-      .concat(opts.boolean)
-      .filter(Boolean)
-      .forEach((key) => {
+  if ('boolean' in opts) {
+    if (typeof opts.boolean === 'boolean') {
+      switch (opts.boolean) {
+        case true:
+          flags.allBools = true
+          break
+        case false:
+          flags.allBools = false
+          break
+      }
+    } else {
+      const booleansArgs: string[] =
+        typeof opts.boolean === 'string' ? [opts.boolean] : opts.boolean
+      ;[...booleansArgs].filter(Boolean).forEach((key) => {
         flags.bools[key] = true
       })
+    }
   }
 
   const aliases: Record<keyof Exclude<Opts['alias'], undefined>, string[]> = {}
 
-  function isBooleanKey(key): boolean {
+  function isBooleanKey<Key extends string>(key: Key): boolean {
     if (flags.bools[key]) {
       return true
     }
