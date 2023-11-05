@@ -122,7 +122,7 @@ export default function minimist<T extends ParsedArgs>(
 ): T {
   type Flags = {
     bools: Record<string, true>
-    strings: Record<string, string>
+    strings: Record<string, boolean>
     unknownFn: null | ((arg: string) => boolean)
     allBools?: boolean
   }
@@ -154,6 +154,22 @@ export default function minimist<T extends ParsedArgs>(
     }
   }
 
+  /**
+   * If `opts.alias` is passed in, aliases are created for each key in the aliases object e.g. given
+   * {
+   *  a: "b",
+   *  x: ["y", "z"]
+   *  },
+   * the following aliases map will be created:
+   * @example
+   * {
+   *    a: ["b"],
+   *    b: ["a"],
+   *    x: ["y", "z"],
+   *    y: ["x", "z"],
+   *    z: ["x", "y"]
+   * }
+   */
   const aliases: Record<keyof Exclude<Opts['alias'], undefined>, string[]> = {}
 
   function isBooleanKey<Key extends string>(key: Key): boolean {
@@ -195,18 +211,19 @@ export default function minimist<T extends ParsedArgs>(
     }
   }
 
-  //
-  ;[]
-    .concat(opts.string)
-    .filter(Boolean)
-    .forEach((key) => {
-      flags.strings[key] = true
-      if (aliases[key]) {
-        ;[].concat(aliases[key]).forEach((k) => {
-          flags.strings[k] = true
-        })
-      }
-    })
+  if ('string' in opts) {
+    ;(Array.isArray(opts.string) ? opts.string : [opts.string])
+      .filter(Boolean)
+      .forEach((key) => {
+        flags.strings[key] = true
+
+        // streamline check for aliases
+        const aliasKeys = aliases[key]
+        if (aliasKeys) {
+          aliasKeys.forEach((aliasKey) => (flags.strings[aliasKey] = true))
+        }
+      })
+  }
 
   let defaults = opts.default || {}
 
@@ -307,25 +324,25 @@ export default function minimist<T extends ParsedArgs>(
     .forEach((key) => {
       setArg(key, defaults[key])
     })
-  var notFlags = []
+  let notFlags = []
 
   if (args.indexOf('--') !== -1) {
     notFlags = args.slice(args.indexOf('--') + 1)
     args = args.slice(0, args.indexOf('--'))
   }
 
-  for (var i = 0; i < args.length; i++) {
-    var arg = args[i]
-    var key
-    var next
+  for (let i = 0; i < args.length; i++) {
+    let arg = args[i]
+    let key
+    let next
 
     if (/^--.+=/.test(arg)) {
       // Using [\s\S] instead of . because js doesn't support the
       // 'dotall' regex modifier. See:
       // http://stackoverflow.com/a/1068308/13216
-      var m = arg.match(/^--([^=]+)=([\s\S]*)$/)
+      let m = arg.match(/^--([^=]+)=([\s\S]*)$/)
       key = m[1]
-      var value = m[2]
+      let value = m[2]
       if (isBooleanKey(key)) {
         value = value !== 'false'
       }
@@ -351,10 +368,10 @@ export default function minimist<T extends ParsedArgs>(
         setArg(key, flags.strings[key] ? '' : true, arg)
       }
     } else if (/^-[^-]+/.test(arg)) {
-      var letters = arg.slice(1, -1).split('')
+      let letters = arg.slice(1, -1).split('')
 
-      var broken = false
-      for (var j = 0; j < letters.length; j++) {
+      let broken = false
+      for (let j = 0; j < letters.length; j++) {
         next = arg.slice(j + 2)
 
         if (next === '-') {
