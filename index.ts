@@ -310,12 +310,12 @@ export default function minimist<T extends ParsedArgs>(
 
   let argv: ParsedArgs = { _: [] }
 
-  function argDefined<Key extends string>(key: Key, arg: string) {
+  function argDefined(key: string, arg: string): boolean {
     return (
       (flags.allBools && /^--[^=]+$/.test(arg)) ||
-      flags.strings[key] ||
-      flags.bools[key] ||
-      aliases[key]
+      get(flags.strings, key) ||
+      !!get(flags.bools, key) ||
+      !!get(aliases, key)
     )
   }
 
@@ -435,9 +435,14 @@ export default function minimist<T extends ParsedArgs>(
     const value = !get(flags.strings, key) && isNumber(val) ? Number(val) : val
 
     setKey(argv, key.split('.'), value)
-    ;(aliases[key] || []).forEach((x) => {
-      setKey(argv, x.split('.'), value)
-    })
+
+    const alias = get(aliases, key)
+
+    if (alias) {
+      for (const x of alias) {
+        setKey(argv, x.split('.'), value)
+      }
+    }
   }
 
   // Set booleans to false by default.
@@ -556,14 +561,17 @@ export default function minimist<T extends ParsedArgs>(
     }
   }
 
-  Object.keys(defaults).forEach((k) => {
-    if (!hasKey(argv, k.split('.'))) {
-      setKey(argv, k.split('.'), defaults[k])
-      ;(aliases[k] || []).forEach(function (x) {
-        setKey(argv, x.split('.'), defaults[k])
-      })
+  for (const [key, value] of Object.entries(defaults)) {
+    if (!hasKey(argv, key.split('.'))) {
+      setKey(argv, key.split('.'), value)
+
+      if (aliases[key]) {
+        for (const x of aliases[key]!) {
+          setKey(argv, x.split('.'), value)
+        }
+      }
     }
-  })
+  }
 
   if (opts['--']) {
     argv['--'] = notFlags.slice()
