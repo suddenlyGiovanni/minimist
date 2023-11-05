@@ -238,6 +238,35 @@ export default function minimist<T extends ParsedArgs>(
     )
   }
 
+  /**
+   *  Sets a property of an object, or a nested property of an object, to the given value.
+   *  Will create any intermediate properties if they don't already exist.
+   *
+   *  @template Obj - A generic type parameter that extends object.
+   *  @param {Obj} obj - An object wherein the value will be set.
+   *  @param {(keyof Obj)[]} keys - An array that represents the keys or nested keys where the value will be set.
+   *  @param {unknown} value - The value that will be assigned to the key or nested keys of obj.
+   *
+   *  @remarks
+   *  The keys array dictates how the value is set.
+   *  If keys is ['a', 'b'], then the function attempts to set obj.a.b
+   *  to the given value. If obj.a does not exist, it will be created as an empty object.
+   *
+   *  If the value at keys location or at an intermediate location is
+   *  Object.prototype, Number.prototype, String.prototype, or Array.prototype,
+   *  it is replaced with a new object or array before proceeding.
+   *
+   *  If the value at the last key is either a boolean or undefined,
+   *  it is set to the incoming value directly.
+   *  If it's an array, the value is pushed into the array.
+   *  If it's an existing other value, it is transformed into an array
+   *  with existing value and new value.
+   *
+   *  If 'keys' array is empty, no operation is performed.
+   *
+   *  @throws Throws an error if a constructor or prototype is found in the path.
+   *  @returns {void}
+   */
   function setKey<Obj extends {}>(
     obj: Obj,
     keys: (keyof Obj)[],
@@ -292,6 +321,31 @@ export default function minimist<T extends ParsedArgs>(
     }
   }
 
+  /**
+   *  Sets a value for a given key in the argv object, considering any supplied arguments and flags.
+   *  If aliases for the key exist, the value is also set for them in the argv object.
+   *
+   *  @template Key - The key to add or modify in the argv object.
+   *  @template Arg - An optional argument associated with the key.
+   *  @template T - The type of the value to be set.
+   *  @param {Key} key - Key to add or modify in the argv object.
+   *                     Can include dots to access nested properties.
+   *  @param {T} val - The value to set for the provided key in the argv object.
+   *  @param {Arg} arg - Optional. An argument associated with the key.
+   *
+   *  @remarks
+   *  If an arg is provided and an unknownFn is specified in the flags object, the
+   *  unknownFn function will be executed with arg as a parameter. If unknownFn returns false,
+   *  the function exits early.
+   *
+   *  The value assigned to the key can have its type preserved if it's a number and the equivalent
+   *  key in flags.strings is not present.
+   *
+   *  In addition to setting the value of the key, the function also sets the value of
+   *  any aliases of the key found in the aliases object.
+   *
+   *  @returns {void}
+   */
   function setArg<Key extends string, Arg extends string, T>(
     key: Key,
     val: T,
@@ -315,7 +369,7 @@ export default function minimist<T extends ParsedArgs>(
   }
 
   // Set booleans to false by default.
-  Object.keys(flags.bools).forEach((key) => {
+  Object.keys(flags.bools).forEach((key: keyof typeof flags.bools) => {
     setArg(key, false)
   })
   // Set booleans to user defined default if supplied.
