@@ -66,6 +66,32 @@ function isConstructorOrProto<Obj extends {}>(
   )
 }
 
+/**
+ * Represents aliases for argument names.
+ * @template TArgNames - The type of the argument names.
+ * @template TAliasNames - The type of the alias names.
+ * @example
+ * ```ts
+ * {
+ *    a: "b",
+ *    x: ["y", "z"]
+ *  }
+ *  ```
+ *  the following aliases map will be created:
+ *  ```ts
+ *  {
+ *    a: ["b"],
+ *    b: ["a"],
+ *    x: ["y", "z"],
+ *    y: ["x", "z"],
+ *    z: ["x", "y"]
+ *    }
+ * ```
+ */
+type Aliases<TArgNames = string, TAliasNames extends string = string> = Partial<
+  Record<Extract<TArgNames, string>, TAliasNames | ReadonlyArray<TAliasNames>>
+>
+
 interface Opts {
   /**
    * A string or array of strings argument names to always treat as strings
@@ -322,11 +348,7 @@ export default function minimist<T extends ParsedArgs>(
    *  @throws Throws an error if a constructor or prototype is found in the path.
    *  @returns {void}
    */
-  function setKey<Obj extends ParsedArgs>(
-    obj: Obj,
-    keys: (keyof Obj)[],
-    value: unknown
-  ): void {
+  function setKey(obj: NestedMapping, keys: string[], value: unknown): void {
     let o = obj
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i]! // TODO: Remove !
@@ -401,21 +423,16 @@ export default function minimist<T extends ParsedArgs>(
    *
    *  @returns {void}
    */
-  function setArg<Key extends string, Arg extends string, T>(
-    key: Key,
-    val: T,
-    arg?: Arg
+  function setArg(
+    key: string,
+    val: unknown,
+    arg: string | undefined = undefined
   ): void {
     if (arg && flags.unknownFn && !argDefined(key, arg)) {
-      if (flags.unknownFn(arg) === false) {
-        return
-      }
+      if (flags.unknownFn(arg) === false) return
     }
 
-    let value =
-      !flags.strings[key] && isNumber(val)
-        ? Number(val) //
-        : val
+    const value = !get(flags.strings, key) && isNumber(val) ? Number(val) : val
 
     setKey(argv, key.split('.'), value)
     ;(aliases[key] || []).forEach((x) => {
