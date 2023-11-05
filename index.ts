@@ -236,35 +236,6 @@ export default function minimist<T extends ParsedArgs>(
   }
   const argv: ParsedArgs = { _: [] }
 
-  if (typeof unknown === 'function') {
-    flags.unknownFn = unknown
-  }
-
-  if (boolean !== undefined) {
-    if (typeof boolean === 'boolean') {
-      flags.allBools = !!boolean
-    } else {
-      const booleanArgs: ReadonlyArray<string> =
-        typeof boolean === 'string' ? [boolean] : boolean
-
-      for (const key of booleanArgs.filter(Boolean)) {
-        flags.bools[key] = true
-        // const alias = get(aliases, key);
-        // if (alias) {
-        //   for (const al of alias) {
-        //     flags.bools[al] = true;
-        //   }
-        // }
-      }
-    }
-  }
-
-  function isBooleanKey<Key extends string>(key: Key): boolean {
-    if (flags.bools[key]) return true
-    if (!aliases[key]) return false
-    return aliases[key].some((alias) => flags.bools[alias])
-  }
-
   // Check if alias exists in options
   if (alias !== undefined) {
     // Build the aliases map based on the passed in alias options
@@ -293,6 +264,25 @@ export default function minimist<T extends ParsedArgs>(
     }
   }
 
+  if (boolean !== undefined) {
+    if (typeof boolean === 'boolean') {
+      flags.allBools = !!boolean
+    } else {
+      const booleanArgs: ReadonlyArray<string> =
+        typeof boolean === 'string' ? [boolean] : boolean
+
+      for (const key of booleanArgs.filter(Boolean)) {
+        flags.bools[key] = true
+        const alias = get(aliases, key)
+        if (alias) {
+          for (const al of alias) {
+            flags.bools[al] = true
+          }
+        }
+      }
+    }
+  }
+
   if (string !== undefined) {
     const stringArgs: ReadonlyArray<string> =
       typeof string === 'string' ? [string] : string
@@ -306,6 +296,16 @@ export default function minimist<T extends ParsedArgs>(
         }
       }
     }
+  }
+
+  if (typeof unknown === 'function') {
+    flags.unknownFn = unknown
+  }
+
+  function isBooleanKey<Key extends string>(key: Key): boolean {
+    if (flags.bools[key]) return true
+    if (!aliases[key]) return false
+    return aliases[key].some((alias) => flags.bools[alias])
   }
 
   function argDefined(key: string, arg: string): boolean {
