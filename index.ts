@@ -346,8 +346,9 @@ export default function minimist<T extends ParsedArgs>(
    *  @throws Throws an error if a constructor or prototype is found in the path.
    *  @returns {void}
    */
-  function setKey(obj: NestedMapping, keys: string[], value: unknown): void {
+  function setKey(obj: NestedMapping, name: string, value: unknown): void {
     let o = obj
+    const keys = name.split('.')
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i]! // TODO: Remove !
       if (isConstructorOrProto(o, key)) {
@@ -432,13 +433,13 @@ export default function minimist<T extends ParsedArgs>(
 
     const value = !get(flags.strings, key) && isNumber(val) ? Number(val) : val
 
-    setKey(argv, key.split('.'), value)
+    setKey(argv, key, value)
 
     const alias = get(aliases, key)
 
     if (alias) {
       for (const x of alias) {
-        setKey(argv, x.split('.'), value)
+        setKey(argv, x, value)
       }
     }
   }
@@ -561,11 +562,11 @@ export default function minimist<T extends ParsedArgs>(
 
   for (const [key, value] of Object.entries(defaults)) {
     if (!hasKey(argv, key.split('.'))) {
-      setKey(argv, key.split('.'), value)
+      setKey(argv, key, value)
 
       if (aliases[key]) {
         for (const x of aliases[key]!) {
-          setKey(argv, x.split('.'), value)
+          setKey(argv, x, value)
         }
       }
     }
