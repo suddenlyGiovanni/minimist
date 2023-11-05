@@ -384,15 +384,15 @@ export default function minimist<T extends ParsedArgs>(
       o = []
     }
     if (
-      o[lastKey] === undefined ||
+      get(o, lastKey) === undefined ||
       isBooleanKey(lastKey) ||
-      typeof o[lastKey] === 'boolean'
+      typeof get(o, lastKey) === 'boolean'
     ) {
       o[lastKey] = value
-    } else if (Array.isArray(o[lastKey])) {
-      o[lastKey].push(value)
+    } else if (Array.isArray(get(o, lastKey))) {
+      ;(o[lastKey] as unknown[]).push(value)
     } else {
-      o[lastKey] = [o[lastKey], value]
+      o[lastKey] = [get(o, lastKey), value]
     }
   }
 
