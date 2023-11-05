@@ -148,11 +148,9 @@ export default function minimist<T extends ParsedArgs>(
           break
       }
     } else {
-      const booleansArgs: string[] =
-        typeof opts.boolean === 'string' ? [opts.boolean] : opts.boolean
-      ;[...booleansArgs].filter(Boolean).forEach((key) => {
-        flags.bools[key] = true
-      })
+      ;(typeof opts.boolean === 'string' ? [opts.boolean] : opts.boolean)
+        .filter(Boolean)
+        .forEach((key) => (flags.bools[key] = true))
     }
   }
 
@@ -165,17 +163,39 @@ export default function minimist<T extends ParsedArgs>(
     if (!aliases[key]) {
       return false
     }
-    return aliases[key].some((x) => flags.bools[x])
+    return aliases[key].some((alias) => flags.bools[alias])
   }
 
-  // Build the aliases map based on the passed in alias options
-  Object.keys(opts.alias || {}).forEach((key) => {
-    assert(typeof opts.alias !== 'undefined', 'alias is not "undefined"')
-    aliases[key] = ([] as string | string[]).concat(opts.alias[key]!) //
-    aliases[key].forEach((x) => {
-      aliases[x] = [key].concat(aliases[key].filter((y) => x !== y))
-    })
-  })
+  // Check if alias exists in options
+  if (opts.alias) {
+    // Build the aliases map based on the passed in alias options
+    for (const [key, value] of Object.entries(opts.alias)) {
+      // Skip alias if the value is an empty string or an array with empty strings.
+      if (
+        (typeof value === 'string' && value.trim() === '') ||
+        (Array.isArray(value) &&
+          value.some((v) => typeof v === 'string' && v.trim() === ''))
+      ) {
+        continue
+      }
+
+      // Make sure value is always an array
+      let aliasValues = Array.isArray(value) ? value : [value]
+
+      // Assign this array to the key in aliases
+      aliases[key] = aliasValues
+
+      // map aliases
+      aliasValues.forEach((aliasKey) => {
+        aliases[aliasKey] = [
+          key,
+          ...aliasValues.filter((val) => val !== aliasKey),
+        ]
+      })
+    }
+  }
+
+  //
   ;[]
     .concat(opts.string)
     .filter(Boolean)
@@ -190,9 +210,9 @@ export default function minimist<T extends ParsedArgs>(
 
   let defaults = opts.default || {}
 
-  let argv = { _: [] }
+  let argv: ParsedArgs = { _: [] }
 
-  function argDefined(key: string, arg: string) {
+  function argDefined<Key extends string>(key: Key, arg: string) {
     return (
       (flags.allBools && /^--[^=]+$/.test(arg)) ||
       flags.strings[key] ||
