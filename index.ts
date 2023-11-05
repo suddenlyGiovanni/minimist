@@ -228,11 +228,13 @@ export default function minimist<T extends ParsedArgs>(
    * };
    */
   const aliases: Record<string, string[]> = {}
+  const defaults = opts.default || {}
   const flags: Flags = {
     bools: {},
     strings: {},
     unknownFn: null,
   }
+  const argv: ParsedArgs = { _: [] }
 
   if (typeof unknown === 'function') {
     flags.unknownFn = unknown
@@ -284,10 +286,9 @@ export default function minimist<T extends ParsedArgs>(
 
       // map aliases
       for (const aliasKey of aliasValues) {
-        aliases[aliasKey] = [
-          key,
-          ...aliasValues.filter((val) => val !== aliasKey),
-        ]
+        aliases[aliasKey] = [key, ...aliasValues].filter(
+          (val) => val !== aliasKey
+        )
       }
     }
   }
@@ -306,10 +307,6 @@ export default function minimist<T extends ParsedArgs>(
       }
     }
   }
-
-  let defaults = opts.default || {}
-
-  let argv: ParsedArgs = { _: [] }
 
   function argDefined(key: string, arg: string): boolean {
     return (
