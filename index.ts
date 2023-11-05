@@ -575,10 +575,10 @@ export default function minimist<T extends ParsedArgs>(
   if (opts['--']) {
     argv['--'] = notFlags.slice()
   } else {
-    notFlags.forEach((k) => {
-      argv._.push(k)
-    })
+    for (const key of notFlags) {
+      argv._.push(key)
+    }
   }
 
-  return argv
+  return argv as ParsedArgs // TODO: make it conform to the generic type
 }
