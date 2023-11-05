@@ -240,18 +240,20 @@ export default function minimist<T extends ParsedArgs>(
 
   if (boolean !== undefined) {
     if (typeof boolean === 'boolean') {
-      switch (boolean) {
-        case true:
-          flags.allBools = true
-          break
-        case false:
-          flags.allBools = false
-          break
-      }
+      flags.allBools = !!boolean
     } else {
-      ;(typeof boolean === 'string' ? [boolean] : boolean)
-        .filter(Boolean)
-        .forEach((key) => (flags.bools[key] = true))
+      const booleanArgs: ReadonlyArray<string> =
+        typeof boolean === 'string' ? [boolean] : boolean
+
+      for (const key of booleanArgs.filter(Boolean)) {
+        flags.bools[key] = true
+        // const alias = get(aliases, key);
+        // if (alias) {
+        //   for (const al of alias) {
+        //     flags.bools[al] = true;
+        //   }
+        // }
+      }
     }
   }
 
@@ -295,17 +297,18 @@ export default function minimist<T extends ParsedArgs>(
   }
 
   if (string !== undefined) {
-    ;(Array.isArray(string) ? string : [string])
-      .filter(Boolean)
-      .forEach((key) => {
-        flags.strings[key] = true
+    const stringArgs: ReadonlyArray<string> =
+      typeof string === 'string' ? [string] : string
 
-        // streamline check for aliases
-        const aliasKeys = aliases[key]
-        if (aliasKeys) {
-          aliasKeys.forEach((aliasKey) => (flags.strings[aliasKey] = true))
+    for (const key of stringArgs.filter(Boolean)) {
+      flags.strings[key] = true
+      const alias = get(aliases, key)
+      if (alias) {
+        for (const al of alias) {
+          flags.strings[al] = true
         }
-      })
+      }
+    }
   }
 
   let defaults = opts.default || {}
