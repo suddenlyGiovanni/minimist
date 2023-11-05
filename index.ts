@@ -258,17 +258,13 @@ export default function minimist<T extends ParsedArgs>(
   }
 
   function isBooleanKey<Key extends string>(key: Key): boolean {
-    if (flags.bools[key]) {
-      return true
-    }
-    if (!aliases[key]) {
-      return false
-    }
+    if (flags.bools[key]) return true
+    if (!aliases[key]) return false
     return aliases[key].some((alias) => flags.bools[alias])
   }
 
   // Check if alias exists in options
-  if (alias) {
+  if (alias !== undefined) {
     // Build the aliases map based on the passed in alias options
     for (const [key, value] of Object.entries(alias)) {
       // Skip alias if the value is an empty string or an array with empty strings.
@@ -287,12 +283,12 @@ export default function minimist<T extends ParsedArgs>(
       aliases[key] = aliasValues
 
       // map aliases
-      aliasValues.forEach((aliasKey) => {
+      for (const aliasKey of aliasValues) {
         aliases[aliasKey] = [
           key,
           ...aliasValues.filter((val) => val !== aliasKey),
         ]
-      })
+      }
     }
   }
 
