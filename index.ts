@@ -1,24 +1,59 @@
-import assert from 'node:assert/strict'
 import '@total-typescript/ts-reset/filter-boolean'
 
-function hasKey<T extends {}>(obj: T, keys: (keyof T)[]): boolean {
-  let o = obj
-  keys.slice(0, -1).forEach((key) => {
-    o = o[key] || {}
-  })
-
-  const key = keys[keys.length - 1]
-  return key in o
+/**
+ * Retrieves the value associated with the specified key in the given object.
+ *
+ * @template TValue - The type of values stored in the object.
+ * @param obj - The object from which to retrieve the value.
+ * @param key - The key of the value to retrieve.
+ * @returns - The value associated with the specified key, or undefined if the key does not exist.
+ * @example
+ * ```ts
+ * const obj = {a: 1, b: 2, c: 3};
+ * get(obj, 'b'); // 2
+ * get(obj, 'd'); // undefined
+ * ```
+ */
+function get<TValue>(
+  obj: Record<string, TValue>,
+  key: keyof typeof obj | (string & {})
+): TValue | undefined {
+  return Object.hasOwn(obj, key)
+    ? obj[key] //
+    : undefined
 }
 
-function isNumber<T extends string | number>(x: T): boolean {
-  if (typeof x === 'number') {
-    return true
-  }
-  if (/^0x[0-9a-f]+$/i.test(x)) {
-    return true
-  }
-  return /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/.test(x)
+interface NestedMapping {
+  [key: string]: NestedMapping | unknown
+}
+
+/**
+ * Checks if the given object has a specified key.
+ *
+ * @param obj - The object to search for the key.
+ * @param keys - An array of keys representing the nested structure of the object.
+ * @returns - Returns true if the key exists, otherwise returns false.
+ */
+function hasKey(obj: NestedMapping, keys: string[]): boolean {
+  let o = obj
+  keys.slice(0, -1).forEach((key) => {
+    o = (get(o, key) ?? {}) as NestedMapping
+  })
+
+  const key = keys[keys.length - 1]!
+  return Object.hasOwn(o, key)
+}
+
+/**
+ * Checks if the given value is a number.
+ *
+ * @param x - The value to be checked.
+ * @return - Returns true if the value is a number or can be coerced to one from a string, otherwise returns false.
+ */
+function isNumber(x: unknown): boolean {
+  if (typeof x === 'number') return true
+  if (/^0x[0-9a-f]+$/i.test(String(x))) return true
+  return /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/.test(String(x))
 }
 
 function isConstructorOrProto<Obj extends {}>(
@@ -120,10 +155,30 @@ export default function minimist<T extends ParsedArgs>(
   args: string[],
   opts: Opts = {}
 ): T {
-  type Flags = {
+  interface Flags {
+    /**
+     * Stores parsed arguments that are recognized as boolean flags.
+     * @example
+     * minimist(['--port', '8080', '--retry-count', '3'], {boolean: ['port']});
+     * bools === {port: true}
+     */
     bools: Record<string, true>
+
+    /**
+     * Stores arguments expected to be treated as strings.
+     * @example
+     * If `opts` is { string: ['port'] } and `args` is ['--port', '8080'], then `flags.strings` will be {port: true}
+     */
     strings: Record<string, boolean>
+
+    /**
+     * A function that handles unrecognized or not defined arguments.
+     */
     unknownFn: null | ((arg: string) => boolean)
+
+    /**
+     * Indicates if all double hyphenated arguments without equal signs will be treated as booleans.
+     */
     allBools?: boolean
   }
 
@@ -267,7 +322,7 @@ export default function minimist<T extends ParsedArgs>(
    *  @throws Throws an error if a constructor or prototype is found in the path.
    *  @returns {void}
    */
-  function setKey<Obj extends {}>(
+  function setKey<Obj extends ParsedArgs>(
     obj: Obj,
     keys: (keyof Obj)[],
     value: unknown
@@ -378,7 +433,7 @@ export default function minimist<T extends ParsedArgs>(
     .forEach((key) => {
       setArg(key, defaults[key])
     })
-  let notFlags = []
+  let notFlags: string[] = []
 
   if (args.indexOf('--') !== -1) {
     notFlags = args.slice(args.indexOf('--') + 1)
@@ -496,7 +551,7 @@ export default function minimist<T extends ParsedArgs>(
   if (opts['--']) {
     argv['--'] = notFlags.slice()
   } else {
-    notFlags.forEach(function (k) {
+    notFlags.forEach((k) => {
       argv._.push(k)
     })
   }
