@@ -120,6 +120,33 @@ interface ParsedArgs {
   _: string[]
 }
 
+interface Flags {
+  /**
+   * Stores parsed arguments that are recognized as boolean flags.
+   * @example
+   * minimist(['--port', '8080', '--retry-count', '3'], {boolean: ['port']});
+   * bools === {port: true}
+   */
+  bools: Record<string, boolean>
+
+  /**
+   * Stores arguments expected to be treated as strings.
+   * @example
+   * If `opts` is { string: ['port'] } and `args` is ['--port', '8080'], then `flags.strings` will be {port: true}
+   */
+  strings: Record<string, boolean>
+
+  /**
+   * A function that handles unrecognized or not defined arguments.
+   */
+  unknownFn: null | ((arg: string) => boolean)
+
+  /**
+   * Indicates if all double hyphenated arguments without equal signs will be treated as booleans.
+   */
+  allBools?: boolean
+}
+
 /**
  * Return an argument object populated with the array arguments from args
  *
@@ -155,33 +182,6 @@ export default function minimist<T extends ParsedArgs>(
   args: string[],
   opts: Opts = {}
 ): T {
-  interface Flags {
-    /**
-     * Stores parsed arguments that are recognized as boolean flags.
-     * @example
-     * minimist(['--port', '8080', '--retry-count', '3'], {boolean: ['port']});
-     * bools === {port: true}
-     */
-    bools: Record<string, true>
-
-    /**
-     * Stores arguments expected to be treated as strings.
-     * @example
-     * If `opts` is { string: ['port'] } and `args` is ['--port', '8080'], then `flags.strings` will be {port: true}
-     */
-    strings: Record<string, boolean>
-
-    /**
-     * A function that handles unrecognized or not defined arguments.
-     */
-    unknownFn: null | ((arg: string) => boolean)
-
-    /**
-     * Indicates if all double hyphenated arguments without equal signs will be treated as booleans.
-     */
-    allBools?: boolean
-  }
-
   const flags: Flags = {
     bools: {},
     strings: {},
