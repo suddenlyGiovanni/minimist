@@ -180,7 +180,7 @@ export default function minimist<T>(
  */
 export default function minimist<T extends ParsedArgs>(
   args: string[],
-  opts: Opts = {}
+  { string, boolean, alias, unknown, ...opts }: Opts = {}
 ): T {
   const flags: Flags = {
     bools: {},
@@ -188,13 +188,13 @@ export default function minimist<T extends ParsedArgs>(
     unknownFn: null,
   }
 
-  if (typeof opts.unknown === 'function') {
-    flags.unknownFn = opts.unknown
+  if (typeof unknown === 'function') {
+    flags.unknownFn = unknown
   }
 
-  if ('boolean' in opts) {
-    if (typeof opts.boolean === 'boolean') {
-      switch (opts.boolean) {
+  if (boolean !== undefined) {
+    if (typeof boolean === 'boolean') {
+      switch (boolean) {
         case true:
           flags.allBools = true
           break
@@ -203,7 +203,7 @@ export default function minimist<T extends ParsedArgs>(
           break
       }
     } else {
-      ;(typeof opts.boolean === 'string' ? [opts.boolean] : opts.boolean)
+      ;(typeof boolean === 'string' ? [boolean] : boolean)
         .filter(Boolean)
         .forEach((key) => (flags.bools[key] = true))
     }
@@ -238,9 +238,9 @@ export default function minimist<T extends ParsedArgs>(
   }
 
   // Check if alias exists in options
-  if (opts.alias) {
+  if (alias) {
     // Build the aliases map based on the passed in alias options
-    for (const [key, value] of Object.entries(opts.alias)) {
+    for (const [key, value] of Object.entries(alias)) {
       // Skip alias if the value is an empty string or an array with empty strings.
       if (
         (typeof value === 'string' && value.trim() === '') ||
@@ -266,8 +266,8 @@ export default function minimist<T extends ParsedArgs>(
     }
   }
 
-  if ('string' in opts) {
-    ;(Array.isArray(opts.string) ? opts.string : [opts.string])
+  if (string !== undefined) {
+    ;(Array.isArray(string) ? string : [string])
       .filter(Boolean)
       .forEach((key) => {
         flags.strings[key] = true
