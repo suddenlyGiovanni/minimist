@@ -208,6 +208,26 @@ export default function minimist<T extends ParsedArgs>(
   args: string[],
   { string, boolean, alias, unknown, ...opts }: Opts = {}
 ): T {
+  /**
+   * An alias dictionary that maps each key to all the possible aliases for that key.
+   * @example
+   * GIVEN an initial alias record
+   * const alias = {
+   *    a: "b",
+   *    x: ["y", "z"]
+   *  };
+   *
+   * THEN the aliases map will match the following structure:
+   *
+   * const aliases = {
+   *    a: ["b"],
+   *    b: ["a"],
+   *    x: ["y", "z"],
+   *    y: ["x", "z"],
+   *    z: ["x", "y"]
+   * };
+   */
+  const aliases: Record<string, string[]> = {}
   const flags: Flags = {
     bools: {},
     strings: {},
@@ -234,24 +254,6 @@ export default function minimist<T extends ParsedArgs>(
         .forEach((key) => (flags.bools[key] = true))
     }
   }
-
-  /**
-   * If `opts.alias` is passed in, aliases are created for each key in the aliases object e.g. given
-   * {
-   *  a: "b",
-   *  x: ["y", "z"]
-   *  },
-   * the following aliases map will be created:
-   * @example
-   * {
-   *    a: ["b"],
-   *    b: ["a"],
-   *    x: ["y", "z"],
-   *    y: ["x", "z"],
-   *    z: ["x", "y"]
-   * }
-   */
-  const aliases: Record<keyof Exclude<Opts['alias'], undefined>, string[]> = {}
 
   function isBooleanKey<Key extends string>(key: Key): boolean {
     if (flags.bools[key]) {
