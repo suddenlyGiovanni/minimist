@@ -308,7 +308,16 @@ export default function minimist<T extends ParsedArgs>(
     return aliases[key].some((alias) => flags.bools[alias])
   }
 
-  function argDefined(key: string, arg: string): boolean {
+  /**
+   * Checks if the given argument is defined in the argv object.
+   * @param key - The key to check e.g 'port'
+   * @param arg - The argument to check e.g '--port=8080'
+   * @returns - Returns true if the argument is defined in the argv object, otherwise returns false.
+   */
+  function argDefined<Arg extends string, Key extends Arg | string>(
+    key: Key,
+    arg: Arg
+  ): boolean {
     return (
       (flags.allBools && /^--[^=]+$/.test(arg)) ||
       get(flags.strings, key) ||
@@ -461,8 +470,17 @@ export default function minimist<T extends ParsedArgs>(
     args = args.slice(0, args.indexOf('--'))
   }
 
+  /**
+   * Iterate over arguments, populating the argv object.
+   */
   for (let i = 0; i < args.length; i++) {
+    /**
+     * the current argument e.g '-h' | '--help' | '--port=8080' | '8080'
+     */
     let arg = args[i]
+    /**
+     * the current argument without the leading hyphens e.g 'h' | 'help' | 'port=8080' | '8080'
+     */
     let key
     let next
 
@@ -500,6 +518,7 @@ export default function minimist<T extends ParsedArgs>(
     } else if (/^-[^-]+/.test(arg)) {
       let letters = arg.slice(1, -1).split('')
 
+      // If multiple letters and no next arg, handle as separate flags e.g. `-hvf`
       let broken = false
       for (let j = 0; j < letters.length; j++) {
         next = arg.slice(j + 2)
